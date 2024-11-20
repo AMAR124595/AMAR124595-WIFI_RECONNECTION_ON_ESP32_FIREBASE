@@ -1,9 +1,5 @@
     #include <Arduino.h>
-    #include <EEPROM.h>
-    #define EEPROM_SIZE 511
-    #define SSID_ADDRESS 0    // Starting address for SSID
-    #define PASS_ADDRESS 32   // Starting address for Password
-
+    #include <Preferences.h>
 
 /***********************************************************************/
     #if defined(ESP32)
@@ -24,6 +20,7 @@
     FirebaseData fbdo;
     FirebaseAuth auth;
     FirebaseConfig config;
+    Preferences preferences;
 /***********************************************************************/
     int count = 0 ;
     String msg;
@@ -37,55 +34,38 @@
     void Firebase_Store(String PATH,String MSG);
     String Firebase_getString(String PATH);
     void Connect_WiFi_1();
-    void read_Credentials(char ssid[], char password[]);
-    void write_Credentials(char ssid[], char password[]);
-    //void read_F(int &F);
-   // void write_F(int F);
+    void write_Credentials(const String& ssid, const String& password);
+    void read_Credentials(String &ssid, String &password);
+    void read_F(int &F);
+    void write_F(int F);
 /***********************************************************************/
     void setup()
     { 
-      
+      preferences.begin("wifiCreds", true);
       WiFi.disconnect();
-      EEPROM.begin(EEPROM_SIZE);
-      int key;
-      key = EEPROM.read(510);
-      Serial.println(key);
-      if(key == 1)
-            {
-              Connect_WiFi_1();
-            }
-      else
-            {
-              Connect_WiFi();
-              EEPROM.write(510, F);
-              EEPROM.commit();
-            }
     }
 /***********************************************************************/
     void loop()
     {
-      
+      int key;
+      read_F(key);
       String CONNECT;
+      while (WiFi.status() != WL_CONNECTED)
+      {
+          if (key == 1)
+            {
+              Connect_WiFi_1();
+            }
+            else
+            {
+              Connect_WiFi();
+            }
+      }
+       
+      preferences.begin("wifiCreds", false);
       WIFI_SSID_1 = Firebase_getString("/SSID");
       WIFI_PASSWORD_1 = Firebase_getString("/PASSWORD");
-      char ssid[32];
-      char password[32];
-          
-          // Copy the content of the Strings into the char arrays
-          WIFI_SSID_1.toCharArray(ssid, sizeof(ssid));
-          WIFI_PASSWORD_1.toCharArray(password, sizeof(password));
-          
-          // Check the length of the SSID and password (excluding the null terminator)
-          if (strlen(ssid) < 32 && strlen(password) < 32) 
-          {
-              write_Credentials(ssid, password);
-              Serial.println("Data stored");
-          } 
-          else 
-          {
-              Serial.println("SSID or password is too long!");
-          }
-
+      write_Credentials(WIFI_SSID_1, WIFI_PASSWORD_1);
       CONNECT = Firebase_getString("/CONNECT");
       if(CONNECT == "ON")
       {
@@ -95,7 +75,8 @@
 /***********************************************************************/
     void Connect_WiFi()
     {
-          F = 1;
+      F = 1;
+      write_F(F);
           Serial.begin(9600);
           delay(100); 
           WiFi.disconnect();
@@ -158,66 +139,38 @@
    
 }  
 /***********************************************************************/
-void writeCredentials(char ssid[], char password[]) 
+void write_Credentials(const String& ssid, const String& password) 
 {
-    // Write SSID to EEPROM
-    for (int i = 0; ssid[i] != '\0'; i++) {
-        EEPROM.write(SSID_ADDRESS + i, ssid[i]);
-    }
-    EEPROM.write(SSID_ADDRESS + strlen(ssid), '\0');  // Null terminator
-
-    // Write Password to EEPROM
-    for (int i = 0; password[i] != '\0'; i++) {
-        EEPROM.write(PASS_ADDRESS + i, password[i]);
-    }
-    EEPROM.write(PASS_ADDRESS + strlen(password), '\0');  // Null terminator
-
-    EEPROM.commit();
+    preferences.putString("ssid", ssid);
+    preferences.putString("password", password);
 }
 /***********************************************************************/
-void read_Credentials(char ssid[], char password[]) 
+void read_Credentials(String &ssid, String &password) 
 {
-    // Read SSID from EEPROM
-    for (int i = 0; i < 32; i++) {
-        ssid[i] = EEPROM.read(SSID_ADDRESS + i);
-        if (ssid[i] == '\0') {
-            break;  // Stop reading when null terminator is encountered
-        }
-    }
-
-    // Read Password from EEPROM
-    for (int i = 0; i < 32; i++) {
-        password[i] = EEPROM.read(PASS_ADDRESS + i);
-        if (password[i] == '\0') {
-            break;  // Stop reading when null terminator is encountered
-        }
-    }
+    ssid = preferences.getString("ssid", "defaultSSID");       // "defaultSSID" if not found
+    password = preferences.getString("password", "defaultPW"); // "defaultPW" if not found
 }
 /***********************************************************************/
-/*void write_F(int F) 
+void write_F(int F) 
 {
     preferences.putInt("F", F);              // Store the integer F
-}*/
+}
 /***********************************************************************/
-/*void read_F(int &F) 
+void read_F(int &F) 
 {
     F = preferences.getInt("F", 0);  // Default value 0 if not found
-}*/
+}
 /***********************************************************************/
 void Connect_WiFi_1()
 {
 
-  char ssidRead[32];
-  char passwordRead[32];
-  read_Credentials(ssidRead, passwordRead);
-  Serial.print("SSID: "); Serial.println(ssidRead);
-  Serial.print("Password: "); Serial.println(passwordRead);
+  read_Credentials(WIFI_SSID_1, WIFI_PASSWORD_1);
           Serial.begin(9600);
           delay(100); 
           WiFi.disconnect();
           delay(800); 
           Serial.println("Connecting to Wi-Fi"); 
-          WiFi.begin(ssidRead, passwordRead);
+          WiFi.begin(WIFI_SSID_1, WIFI_PASSWORD_1);
           Serial.print("Connecting to Wi-Fi_1");
           delay(100);
           while (WiFi.status() != WL_CONNECTED)
@@ -243,5 +196,7 @@ void Connect_WiFi_1()
           Firebase.setDoubleDigits(5);
           config.timeout.serverResponse = 10 * 1000;
           Firebase_Store("/STATUS","CONNECTED_1");
+  preferences.begin("wifiCreds", false);
+  write_Credentials(WIFI_SSID_1, WIFI_PASSWORD_1);
 }
 /***********************************************************************/
