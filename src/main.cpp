@@ -1,6 +1,6 @@
     #include <Arduino.h>
     #include <EEPROM.h>
-    #define EEPROM_SIZE 511
+    #define EEPROM_SIZE 512
     #define SSID_ADDRESS 0    // Starting address for SSID
     #define PASS_ADDRESS 32   // Starting address for Password
 
@@ -44,19 +44,24 @@
 /***********************************************************************/
     void setup()
     { 
-      
+      Serial.begin(9600);
       WiFi.disconnect();
       EEPROM.begin(EEPROM_SIZE);
-      int key;
+      int key = 0;
+      
       key = EEPROM.read(510);
       Serial.println(key);
+      Serial.println("data retrived");
+      delay(1000);
       if(key == 1)
             {
+              
               Connect_WiFi_1();
             }
       else
             {
               Connect_WiFi();
+              delay(1000);
               EEPROM.write(510, F);
               EEPROM.commit();
             }
@@ -68,6 +73,8 @@
       String CONNECT;
       WIFI_SSID_1 = Firebase_getString("/SSID");
       WIFI_PASSWORD_1 = Firebase_getString("/PASSWORD");
+      Serial.println(WIFI_SSID_1);
+      Serial.println(WIFI_PASSWORD_1);
       char ssid[32];
       char password[32];
           
@@ -95,7 +102,6 @@
 /***********************************************************************/
     void Connect_WiFi()
     {
-          F = 1;
           Serial.begin(9600);
           delay(100); 
           WiFi.disconnect();
@@ -127,6 +133,7 @@
           Firebase.setDoubleDigits(5);
           config.timeout.serverResponse = 10 * 1000;
           Firebase_Store("/STATUS","CONNECTED");
+          F = 1;
     }
 /***********************************************************************/
     void Firebase_Store(String PATH,String MSG)
@@ -158,7 +165,7 @@
    
 }  
 /***********************************************************************/
-void writeCredentials(char ssid[], char password[]) 
+void write_Credentials(char ssid[], char password[]) 
 {
     // Write SSID to EEPROM
     for (int i = 0; ssid[i] != '\0'; i++) {
@@ -206,24 +213,34 @@ void read_Credentials(char ssid[], char password[])
 /***********************************************************************/
 void Connect_WiFi_1()
 {
-
+  Serial.begin(9600);
   char ssidRead[32];
   char passwordRead[32];
   read_Credentials(ssidRead, passwordRead);
-  Serial.print("SSID: "); Serial.println(ssidRead);
-  Serial.print("Password: "); Serial.println(passwordRead);
+  Serial.print("SSID: "); 
+  Serial.println(ssidRead);
+  Serial.print("Password: "); 
+  Serial.println(passwordRead);
+
           Serial.begin(9600);
           delay(100); 
           WiFi.disconnect();
           delay(800); 
-          Serial.println("Connecting to Wi-Fi"); 
+          Serial.println("Connecting to Wi-Fi_1"); 
           WiFi.begin(ssidRead, passwordRead);
-          Serial.print("Connecting to Wi-Fi_1");
+          Serial.print("Connecting to Wi-Fi_NEW");
           delay(100);
+          int X=0;
           while (WiFi.status() != WL_CONNECTED)
-          {
+          { 
             Serial.print(".");
             delay(300);
+            if(X==150)
+            {
+                Connect_WiFi();
+            }
+            Serial.print(X);
+            X++;
           }
           Serial.println();
           Serial.print("Connected with IP: ");
