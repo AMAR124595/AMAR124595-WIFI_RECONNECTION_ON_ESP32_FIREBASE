@@ -16,10 +16,10 @@
     #include <addons/RTDBHelper.h>
     #define WIFI_SSID "S 20 FE"
     #define WIFI_PASSWORD "123456710"
-    #define API_KEY "AIzaSyDt2Q1wUwFogJFAPLstSVgF9xT5UijgKYY"
-    #define DATABASE_URL "https://wifi-crd-change-default-rtdb.firebaseio.com"
-    #define USER_EMAIL "davidabhram47nrk@gmail.com"
-    #define USER_PASSWORD "wifi12345"
+    #define API_KEY "....................."
+    #define DATABASE_URL "...................................."
+    #define USER_EMAIL "....................."
+    #define USER_PASSWORD "............."
 
     FirebaseData fbdo;
     FirebaseAuth auth;
